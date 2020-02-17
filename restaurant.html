@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- Normalize.css for better cross-browser consistency -->
+  <link rel="stylesheet" src="//normalize-css.googlecode.com/svn/trunk/normalize.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+  <script type="text/javascript" src="node_modules/idb/lib/idb.js"></script>
+  <!-- Main CSS file -->
+  <link rel="stylesheet" href="css/styles.css" type="text/css"> 
+
+
+
+  <!-- 3 imports for toastr and jquery needed NOT USED -->
+  <!--<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/css/toastr.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/js/toastr.min.js"></script>
+-->
+
+  <title>Restaurant Info</title>
+</head>
+
+<body class="inside">
+  <!-- Beginning header -->
+  <header>
+    <!-- Beginning nav -->
+    <nav>
+      <h1><a href="/">Restaurant Reviews</a></h1>
+	  <label tabindex="0" aria-label="The following Google Map will not be available for screen readers"></label>
+    
+    <!-- Beginning breadcrumb -->
+    <ul aria-label="breadcrumb" id="breadcrumb" >
+      <li><a href="/">Home</a></li>
+    </ul>
+    <!-- End breadcrumb -->
+	</nav>
+    <!-- End nav -->
+  </header>
+  <!-- End header -->
+
+  <!-- Beginning main -->
+  <main aria-label="main content" id="maincontent">
+    <!-- Beginning map -->
+    <section aria-hidden="true" role="application" id="map-container">
+      <div aria-hidden="true" id="map"></div>
+    </section>
+    <!-- End map -->
+    <!-- Beginning restaurant -->
+    <section tabindex="0" aria-label="restaurant info" id="restaurant-container">
+      <h2 tabindex="0" id="restaurant-name"></h2>
+      <img tabindex="0" aria-label="Restaurant image" id="restaurant-img">
+      <p tabindex="0" id="restaurant-cuisine"></p>
+      <p tabindex="0" id="restaurant-address"></p>
+      <table tabindex="0" id="restaurant-hours"></table>
+    </section>
+    <!-- end restaurant -->
+    <!-- Beginning reviews -->
+    <section tabindex="0" aria-label="restaurant reviews" id="reviews-container">
+      <ul id="reviews-list"></ul>
+    
+  
+    </section>
+      <!-- End reviews -->
+    
+<!-- Beginning of the section form for the comments -->
+     
+    <section tabindex="0" aria-label="comment form" id="form-container" style=" margin:auto;    width: 50%; padding: 0; display: flex; flex-flow: column wrap; margin-bottom: 35%; margin-top: 10%;">
+       <h2 style="color:orange; font-weight: 300; font-size: 24px;" id="form-label">Add Review</h2>
+      <!--<form method="post" target="none"  action='http://localhost:1337/reviews' style="margin-left:10%; margin-bottom: 50%;" id="commentForm">-->
+      <h4>Name:</h4> <input tabindex="0" aria-label="name" type="text" id="nameReview" name="name" required></br></br>
+      <h4>Rating:</h4> <select tabindex="0" aria-label="rating select" id="ratingReview" name="rating">
+    <option value="1">1</option>
+    <option value="2">2</option>
+    <option value="3">3</option>
+    <option value="4">4</option>
+    <option value="5">5</option>
+  </select>
+      </br></br>
+  <textarea tabindex="0" aria-label="comments textarea" id="commentsReview" rows="10" cols="40" name="comments" placeholder="Comments here"></textarea><br><br>
+  <button style="color:white; background-color: orange; cursor: pointer; font-weight: bold; font-size: 1.3em;" onclick='sendReview(document.getElementById("nameReview").value, document.getElementById("ratingReview").value, document.getElementById("commentsReview").value, document.getElementById("restId").value);'>Send Review</button>
+      
+        
+     <!-- </form>-->
+    </section>
+  
+  </main>
+  <!-- End main -->
+
+  <div id="notification" aria-live="polite"></div>
+
+  <!-- Beginning footer -->
+  <footer id="footer">
+    Copyright (c) 2017 <a href="/"><strong>Restaurant Reviews</strong></a> All Rights Reserved.
+  </footer>
+  <!-- End footer -->
+
+  <!-- Beginning scripts -->
+  <!-- Database helpers -->
+  <script type="text/javascript" src="js/dbhelper.js"></script>
+  <!-- Main javascript file -->
+  <script type="text/javascript" src="js/restaurant_info.js"></script>
+  <!-- Google Maps -->
+  <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCLAvroO3Pa4fCcMT-0OFVOzCJFthGD2lE&libraries=places&callback=initMap"></script>
+
+
+  <script>
+
+
+    function sendReview(name,rating,comments,restaurant_id){
+
+
+      // String message;
+     const review = { 
+      'restaurant_id': parseInt(restaurant_id),
+      'name': String(name),
+      'rating': parseInt(rating),
+      'comments': String(comments),
+      //'createdAt': new Date(),
+      //'updatedAt': new Date()
+    };
+
+      //document.getElementById("commentForm").reset();
+       
+  if(!navigator.onLine){
+    //Show a notification
+             var x = document.getElementById("notification");
+    x.className = "show";
+    x.innerHTML="It seems like you're OFFLINE. The review will be updated as soon as possible.";
+    setTimeout(function(){ x.className = x.className.replace("show", ""); }, 3000);
+
+}
+      
+      //adding review to idb
+const dbPromise = idb.open('db-project2', 1);
+          dbPromise.then(db =>{
+             const tx = db.transaction("reviewsOS", "readwrite");
+             const reviewsOS = tx.objectStore("reviewsOS");
+             reviewsOS.add(review);
+            // console.log("added to idb");
+           });
+
+     
+
+    fetch('http://localhost:1337/reviews/',
+
+        {
+        method: 'POST',
+  headers: {
+    'Accept': 'application/json, text/plain, */*',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify(review)
+}).then( function() {
+
+
+//add the review to the bottom in the review list
+const container = document.getElementById('reviews-container');
+const ul = document.getElementById('reviews-list');
+
+const li = document.createElement('li');
+  const name = document.createElement('p');
+  name.innerHTML = review.name;
+  name.setAttribute(`aria-label`,`reviewer name: ${review.name}`);
+  name.setAttribute("tabindex","0");
+  li.appendChild(name);
+
+  const date = document.createElement('p');
+  date.innerHTML = new Date();
+  date.setAttribute(`aria-label`,`review date: ${new Date();}`);
+  date.setAttribute("tabindex","0");
+  li.appendChild(date);
+
+
+const stars = document.createElement('p');
+   const starsNumber = parseInt(review.rating);
+   stars.innerHTML = '<i style="font-size:12px;">Rating:</i> ';
+   if(starsNumber!=0){
+   for (var i=0; i<starsNumber; i++){
+     temp = '<i class="fa fa-star-o"></i>';
+  stars.innerHTML+=temp;
+    }
+  stars.setAttribute(`aria-label`,`rating: ${review.rating}`);
+  stars.setAttribute("tabindex","0");
+  li.appendChild(stars);
+   }
+
+
+   const comments = document.createElement('p');
+  comments.innerHTML = review.comments;
+  comments.setAttribute(`aria-label`,`review comment: ${review.comments}`);
+  comments.setAttribute("tabindex","0");
+  li.appendChild(comments);
+
+
+  ul.appendChild(li);
+  container.appendChild(ul);
+    console.log("added review to bottom page");
+
+
+    //Show notification
+    if(navigator.onLine){
+     var x = document.getElementById("notification");
+    
+    x.className = "show";
+    x.innerHTML="Review added correctly";
+    setTimeout(function(){ x.className = x.className.replace("show", ""); }, 3000);
+  }
+
+        })
+}
+
+      /*JSONArray array = new JSONArray();
+      JSONObject item = new JSONObject();
+      item.put("information", "test");
+      item.put("id", 3);
+      item.put("name", "course1");
+      array.add(item);
+
+      json.put("course", array);
+
+      message = json.toString();*/
+    
+  </script>
+  <!-- End scripts -->
+
+</body>
+
+</html>
